@@ -1,0 +1,127 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local ESP_ENABLED = true
+
+-- ================= GUI =================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 320, 0, 50)
+Frame.Position = UDim2.new(1, 20, 0.85, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner", Frame)
+Corner.CornerRadius = UDim.new(0,12)
+
+local Label = Instance.new("TextLabel")
+Label.Size = UDim2.new(1, -10, 1, -10)
+Label.Position = UDim2.new(0,5,0,5)
+Label.BackgroundTransparency = 1
+Label.TextColor3 = Color3.new(1,1,1)
+Label.TextScaled = true
+Label.Font = Enum.Font.GothamBold
+Label.Parent = Frame
+
+local function notify(text)
+	Label.Text = text
+
+	local enter = TweenService:Create(
+		Frame,
+		TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+		{Position = UDim2.new(0.72, 0, 0.85, 0)}
+	)
+
+	local exit = TweenService:Create(
+		Frame,
+		TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+		{Position = UDim2.new(1, 20, 0.85, 0)}
+	)
+
+	enter:Play()
+	enter.Completed:Wait()
+	task.wait(2)
+	exit:Play()
+end
+
+task.spawn(function()
+	notify("ESP ACTIVATED | toggle with Z")
+end)
+
+-- ================= ESP LOGIC =================
+
+local function addESP(player)
+	if player == LocalPlayer then return end
+	if not player.Character then return end
+	if player.Character:FindFirstChild("ESP_Highlight") then return end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ESP_Highlight"
+	highlight.Adornee = player.Character
+	highlight.FillColor = Color3.fromRGB(255, 0, 0)
+	highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+	highlight.FillTransparency = 0.3
+	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = player.Character
+end
+
+local function removeESP(player)
+	if not player.Character then return end
+	local h = player.Character:FindFirstChild("ESP_Highlight")
+	if h then h:Destroy() end
+end
+
+local function refreshESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if ESP_ENABLED then
+			addESP(p)
+		else
+			removeESP(p)
+		end
+	end
+end
+
+-- ================= INPUT =================
+
+UIS.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.Z then
+		ESP_ENABLED = not ESP_ENABLED
+		refreshESP()
+
+		if ESP_ENABLED then
+			notify("ESP ACTIVATED | toggle with Z")
+		else
+			notify("ESP DEACTIVATED | toggle with Z")
+		end
+	end
+end)
+
+-- ================= PLAYER HANDLING =================
+
+local function onPlayer(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.3)
+		if ESP_ENABLED then
+			addESP(player)
+		end
+	end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+	onPlayer(p)
+end
+
+Players.PlayerAdded:Connect(onPlayer)
+
+task.wait(1)
+refreshESP()
